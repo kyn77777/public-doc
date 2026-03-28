@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code — Your AI Coding Partner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #0a0a14;
+      --bg-mid:     #111128;
+      --bg-card:    rgba(255,255,255,0.04);
+      --border:     #1e293b;
+      --border-lg:  #334155;
+      --purple:     #8b5cf6;
+      --blue:       #3b82f6;
+      --text-head:  #f1f5f9;
+      --text-body:  #94a3b8;
+      --text-muted: #64748b;
+      --accent:     #a78bfa;
+      --green:      #22c55e;
+      --radius:     12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── ANIMATED BACKGROUND ─── */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(139,92,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(59,130,246,0.10) 0%, transparent 55%),
+        linear-gradient(160deg, #0a0a14 0%, #111128 50%, #0d1f3c 100%);
+      pointer-events: none;
+    }
+
+    .particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+      animation: float linear infinite;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    /* generate particles via nth-child */
+    .particle:nth-child(1)  { left:5%;  width:3px;  height:3px; background:var(--purple); animation-duration:18s; animation-delay:0s;   }
+    .particle:nth-child(2)  { left:15%; width:2px;  height:2px; background:var(--blue);   animation-duration:22s; animation-delay:2s;   }
+    .particle:nth-child(3)  { left:25%; width:4px;  height:4px; background:var(--accent); animation-duration:16s; animation-delay:4s;   }
+    .particle:nth-child(4)  { left:35%; width:2px;  height:2px; background:var(--blue);   animation-duration:20s; animation-delay:1s;   }
+    .particle:nth-child(5)  { left:50%; width:3px;  height:3px; background:var(--purple); animation-duration:24s; animation-delay:6s;   }
+    .particle:nth-child(6)  { left:60%; width:2px;  height:2px; background:var(--accent); animation-duration:17s; animation-delay:3s;   }
+    .particle:nth-child(7)  { left:70%; width:4px;  height:4px; background:var(--blue);   animation-duration:21s; animation-delay:8s;   }
+    .particle:nth-child(8)  { left:80%; width:2px;  height:2px; background:var(--purple); animation-duration:19s; animation-delay:5s;   }
+    .particle:nth-child(9)  { left:90%; width:3px;  height:3px; background:var(--blue);   animation-duration:23s; animation-delay:7s;   }
+    .particle:nth-child(10) { left:45%; width:2px;  height:2px; background:var(--accent); animation-duration:15s; animation-delay:9s;   }
+
+    /* ─── LAYOUT ─── */
+    .page { position: relative; z-index: 1; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(10,10,20,0.7);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: white;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .nav-wordmark {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-head);
+      letter-spacing: -0.3px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      color: var(--text-body);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text-head); }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--purple), var(--blue));
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      display: inline-block;
+    }
+
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-secondary {
+      border: 1px solid var(--border-lg);
+      color: var(--text-body);
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s, transform 0.2s;
+      display: inline-block;
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+
+    /* ─── HERO ─── */
+    .hero {
+      text-align: center;
+      padding: 96px 24px 64px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(139,92,246,0.12);
+      border: 1px solid rgba(139,92,246,0.3);
+      color: var(--accent);
+      padding: 5px 16px;
+      border-radius: 24px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero-badge::before { content: '✦'; font-size: 10px; }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 800;
+      line-height: 1.15;
+      color: var(--text-head);
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 .gradient-text {
+      background: linear-gradient(90deg, var(--purple), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--text-body);
+      max-width: 520px;
+      margin: 0 auto 36px;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 56px;
+    }
+
+    .hero-ctas .btn-primary  { padding: 13px 30px; font-size: 15px; }
+    .hero-ctas .btn-secondary { padding: 13px 30px; font-size: 15px; }
+
+    /* ─── TERMINAL MOCKUP ─── */
+    .terminal-wrap {
+      max-width: 600px;
+      margin: 0 auto;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px var(--border);
+      animation: fadeUp 0.8s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .terminal-bar {
+      background: #1a1a2e;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .dot-red    { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green  { background: #22c55e; }
+
+    .terminal-title {
+      margin-left: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .terminal-body {
+      background: #08080f;
+      padding: 24px 28px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 2;
+    }
+
+    .t-prompt { color: var(--text-muted); }
+    .t-cmd    { color: #e2e8f0; }
+    .t-info   { color: #60a5fa; }
+    .t-input  { color: var(--text-head); }
+    .t-input::before { content: '> '; color: var(--accent); }
+    .t-ok     { color: var(--green); }
+    .t-ok::before { content: '✓ '; }
+    .t-ask    { color: var(--accent); }
+    .t-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--accent);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+      margin-left: 2px;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ─── PHOTO STRIP ─── */
+    .photo-strip {
+      position: relative;
+      margin: 72px 0 0;
+      height: 200px;
+      overflow: hidden;
+    }
+
+    .photo-strip::before,
+    .photo-strip::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 120px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .photo-strip::before {
+      left: 0;
+      background: linear-gradient(to right, var(--bg-deep), transparent);
+    }
+
+    .photo-strip::after {
+      right: 0;
+      background: linear-gradient(to left, var(--bg-deep), transparent);
+    }
+
+    .photo-track {
+      display: flex;
+      gap: 16px;
+      animation: scrollPhotos 30s linear infinite;
+      width: max-content;
+    }
+
+    @keyframes scrollPhotos {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    .photo-track img {
+      height: 200px;
+      width: 280px;
+      object-fit: cover;
+      border-radius: 10px;
+      opacity: 0.45;
+      filter: saturate(0.6) brightness(0.7);
+      flex-shrink: 0;
+    }
+
+    /* ─── SECTION LABEL ─── */
+    .section-label {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section-label h2 {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 800;
+      color: var(--text-head);
+      letter-spacing: -0.8px;
+      margin-bottom: 10px;
+    }
+
+    .section-label p {
+      font-size: 15px;
+      color: var(--text-body);
+    }
+
+    /* ─── FEATURES ─── */
+    .features {
+      padding: 80px 48px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      cursor: default;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(139,92,246,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(139,92,246,0.12);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-head);
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-muted);
+    }
+
+    .feature-card code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(139,92,246,0.1);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ─── HOW IT WORKS ─── */
+    .how {
+      padding: 80px 48px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: calc(16.66% + 16px);
+      right: calc(16.66% + 16px);
+      height: 1px;
+      background: linear-gradient(90deg, var(--purple), var(--blue));
+      opacity: 0.4;
+    }
+
+    .step {
+      text-align: center;
+      padding: 0 12px;
+    }
+
+    .step-num {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: white;
+      margin: 0 auto 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-head);
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-muted);
+    }
+
+    /* ─── CTA BANNER ─── */
+    .cta-section {
+      padding: 48px 48px 80px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .cta-banner {
+      background: linear-gradient(135deg, #1e1254, #0f2a4a);
+      border: 1px solid rgba(139,92,246,0.25);
+      border-radius: 20px;
+      padding: 56px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-banner::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 200px;
+      background: radial-gradient(ellipse, rgba(139,92,246,0.2), transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-banner h2 {
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 800;
+      color: var(--text-head);
+      letter-spacing: -0.8px;
+      margin-bottom: 12px;
+    }
+
+    .cta-banner p {
+      font-size: 15px;
+      color: var(--text-body);
+      margin-bottom: 32px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-buttons .btn-primary  { padding: 14px 36px; font-size: 15px; }
+    .cta-buttons .btn-secondary { padding: 14px 36px; font-size: 15px; }
+
+    .install-hint {
+      margin-top: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .install-hint span {
+      color: var(--accent);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-icon {
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: white;
+      font-weight: 800;
+    }
+
+    footer p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text-body); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links a:not(.btn-primary) { display: none; }
+
+      .hero { padding: 64px 20px 40px; }
+
+      .features,
+      .how,
+      .cta-section { padding-left: 20px; padding-right: 20px; }
+
+      .features-grid { grid-template-columns: 1fr 1fr; }
+
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+
+      .cta-banner { padding: 40px 24px; }
+
+      footer { padding: 20px; flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 480px) {
+      .features-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+<div class="particles">
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+</div>
+
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="https://claude.ai/code" target="_blank" rel="noopener">
+      <div class="nav-icon">✦</div>
+      <span class="nav-wordmark">Claude Code</span>
+    </a>
+    <div class="nav-links">
+      <a href="https://docs.anthropic.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Docs</a>
+      <a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn-primary" href="https://claude.ai/code" target="_blank" rel="noopener">Get Started Free</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">Powered by Claude</div>
+    <h1>
+      Your AI Coding Partner<br>
+      <span class="gradient-text">Lives in the Terminal</span>
+    </h1>
+    <p>
+      Claude Code is Anthropic's official CLI — an agentic AI that reads your codebase,
+      writes &amp; fixes code, runs tests, and ships commits, all through natural conversation.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn-primary" href="https://claude.ai/code" target="_blank" rel="noopener">Try Claude Code →</a>
+      <a class="btn-secondary" href="https://docs.anthropic.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Read the Docs</a>
+    </div>
+
+    <!-- Terminal mockup -->
+    <div class="terminal-wrap">
+      <div class="terminal-bar">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">zsh — claude</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-prompt">~/my-project $&nbsp;<span class="t-cmd">claude</span></div>
+        <div class="t-info">Claude Code ready. How can I help with your project?</div>
+        <div>&nbsp;</div>
+        <div class="t-input">Fix the auth bug in login.ts and write tests for it</div>
+        <div>&nbsp;</div>
+        <div class="t-ok">Scanning codebase… found issue in login.ts:42</div>
+        <div class="t-ok">Token expiry was not being validated on refresh</div>
+        <div class="t-ok">Patched login.ts, updated auth.service.ts</div>
+        <div class="t-ok">Wrote 4 test cases — all passing</div>
+        <div>&nbsp;</div>
+        <div class="t-ask">Ready to commit these changes? (y/n)&nbsp;<span class="t-cursor"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHOTO STRIP -->
+  <div class="photo-strip" aria-hidden="true">
+    <div class="photo-track">
+      <!-- Set 1 -->
+      <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=560&q=70&auto=format" alt="Developer at laptop" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=560&q=70&auto=format" alt="Code on screen" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=560&q=70&auto=format" alt="Programming" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=560&q=70&auto=format" alt="Laptop coding" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=560&q=70&auto=format" alt="Developer workspace" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=560&q=70&auto=format" alt="Code editor" loading="lazy" />
+      <!-- Set 2 (duplicate for seamless loop) -->
+      <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=560&q=70&auto=format" alt="" loading="lazy" aria-hidden="true" />
+      <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=560&q=70&auto=format" alt="" loading="lazy" aria-hidden="true" />
+      <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=560&q=70&auto=format" alt="" loading="lazy" aria-hidden="true" />
+      <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=560&q=70&auto=format" alt="" loading="lazy" aria-hidden="true" />
+      <img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=560&q=70&auto=format" alt="" loading="lazy" aria-hidden="true" />
+      <img src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=560&q=70&auto=format" alt="" loading="lazy" aria-hidden="true" />
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="section-label">
+      <h2>Everything you need. Nothing you don't.</h2>
+      <p>Built for developers who want to move fast without breaking things.</p>
+    </div>
+
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>Agentic &amp; Autonomous</h3>
+        <p>Handles entire tasks end-to-end — reads files, writes code, runs tests, and commits changes without constant hand-holding.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🧠</span>
+        <h3>Codebase Aware</h3>
+        <p>Understands your full project structure, imports, and conventions — not just the file you're looking at right now.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🔒</span>
+        <h3>Safe by Default</h3>
+        <p>Asks before destructive actions. Every edit is reviewable. You stay in control at every step of the process.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🛠️</span>
+        <h3>Works Everywhere</h3>
+        <p>Native CLI, VS Code extension, JetBrains plugin — Claude Code fits into whatever environment you already use.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🚀</span>
+        <h3>Zero Config</h3>
+        <p>Install in seconds:<br><code>npm i -g @anthropic-ai/claude-code</code><br>No yaml files. No setup wizards. Just start.</p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <h3>Natural Language</h3>
+        <p>Describe what you want in plain English. Claude understands intent, context, and nuance — not just keyword commands.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <div class="section-label">
+      <h2>How it works</h2>
+      <p>From install to shipped code in minutes.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install the CLI</h3>
+        <p>Run <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">npm install -g @anthropic-ai/claude-code</code> and authenticate with your Anthropic account.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Open your project</h3>
+        <p>Navigate to any repo and run <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">claude</code>. It reads your codebase and gets up to speed automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Start building</h3>
+        <p>Describe your task in plain English. Claude plans, writes, tests, and commits — you review and approve.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section class="cta-section">
+    <div class="cta-banner">
+      <h2>Ready to ship faster?</h2>
+      <p>Join thousands of developers already using Claude Code to build better software.</p>
+      <div class="cta-buttons">
+        <a class="btn-primary" href="https://claude.ai/code" target="_blank" rel="noopener">Visit claude.ai/code ↗</a>
+        <a class="btn-secondary" href="https://docs.anthropic.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Read the Docs ↗</a>
+      </div>
+      <p class="install-hint">or run &nbsp;<span>npm install -g @anthropic-ai/claude-code</span>&nbsp; right now</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-left">
+      <div class="footer-icon">✦</div>
+      <p>© 2025 Anthropic · Claude Code</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://www.anthropic.com/legal/consumer-terms" target="_blank" rel="noopener">Terms</a>
+      <a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://docs.anthropic.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Docs</a>
+    </div>
+  </footer>
+
+</div><!-- .page -->
+</body>
+</html>
